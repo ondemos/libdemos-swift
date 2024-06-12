@@ -1,0 +1,3 @@
+[submodule "Sources/Clibdemos"]
+	path = Sources/Clibdemos
+	url = https://github.com/ondemos/libdemos
