@@ -17,7 +17,7 @@ public func splitSecret(secret: Data, sharesLen: UInt, theshold: UInt) throws ->
   }
   
   guard result == 0 else {
-    throw ShamirSharingError.invalidSplitResponse(response: result)
+    throw ShamirError.invalidSplitResponse(response: result)
   }
   
   var shares: [Data] = []

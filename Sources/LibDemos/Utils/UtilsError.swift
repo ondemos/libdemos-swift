@@ -1,6 +1,6 @@
   //
   //  File.swift
-  //  
+  //
   //
   //  Created by ondemOS on 11/6/24.
   //
@@ -10,10 +10,13 @@ import Foundation
 enum UtilsError: Error {
   case couldNotGenerateSecureRandomBytes
   case couldNotCalculateSha512
+  case sha512CalculationError(result: Int32)
   case couldNotCalculateArgon2
   case couldNotGenerateEd25519KeyPair(error: Int)
   case couldNotGenerateSignature(error: Int)
   case couldNotVerifySignature(error: Int)
+  case minBiggerThanMax(min: Int, max: Int)
+  case minOrMaxIsNegative
 }
 
 enum MnemonicError: Error {

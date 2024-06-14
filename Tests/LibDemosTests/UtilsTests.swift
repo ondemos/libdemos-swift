@@ -88,6 +88,34 @@ final class UtilsTests: XCTestCase {
     } catch {
       XCTFail("ERROR: \(error)")
     }
+  }
 
+  func testRandomSelection() {
+    do {
+      let min = 50
+      let max = 5000
+      let randomNumber = try randomNumberInRange(min: min, max: max)
+      let anotherRandomNumber = try randomNumberInRange(min: min, max: max)
+
+      XCTAssertTrue(randomNumber != anotherRandomNumber)
+
+      let randomArray = try randomBytes(length: max)
+      let shuffled = try arrayRandomShuffle(array: randomArray)
+
+      XCTAssertNotEqual(randomArray, shuffled)
+
+      let shuffled2 = try arrayRandomShuffle(array: randomArray)
+
+      XCTAssertNotEqual(shuffled, shuffled2)
+
+      let subset1 = try arrayRandomSubset(array: randomArray, elements: min)
+      let subset2 = try arrayRandomSubset(array: randomArray, elements: min)
+
+      XCTAssertEqual(subset1.count, min)
+      XCTAssertEqual(subset2.count, min)
+      XCTAssertNotEqual(subset1, subset2)
+    } catch {
+      XCTFail("ERROR: \(error)")
+    }
   }
 }

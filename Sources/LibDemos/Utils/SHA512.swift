@@ -8,9 +8,8 @@
 import Foundation
 #if canImport(CryptoKit)
 import CryptoKit
-#else
-import Clibdemos
 #endif
+import Clibdemos
 
 public func SHA512(data: Data) throws -> Data {
 #if canImport(CryptoKit)
@@ -19,18 +18,29 @@ public func SHA512(data: Data) throws -> Data {
     
     return Data(hash)
   } else {
-    throw UtilsError.couldNotCalculateSha512
+    var hash = [UInt8](repeating: 0, count: 64)
+    let dataLength = UInt32(data.count)
+    
+    let result = data.withUnsafeBytes { (dataPtr: UnsafeRawBufferPointer) -> Int32 in
+      return sha512(dataLength, dataPtr.baseAddress?.assumingMemoryBound(to: UInt8.self), &hash)
+    }
+    
+    guard result == 0 else {
+      throw UtilsError.sha512CalculationError(result: result)
+    }
+    
+    return Data(hash)
   }
 #else
   var hash = [UInt8](repeating: 0, count: 64)
   let dataLength = UInt32(data.count)
   
   let result = data.withUnsafeBytes { (dataPtr: UnsafeRawBufferPointer) -> Int32 in
-    return sha512(dataLength, dataPtr.baseAddress!.assumingMemoryBound(to: UInt8.self), &hash)
+    return sha512(dataLength, dataPtr.baseAddress?.assumingMemoryBound(to: UInt8.self), &hash)
   }
   
   guard result == 0 else {
-    throw UtilsError.couldNotCalculateSha512
+    throw UtilsError.sha512CalculationError(result: result)
   }
   
   return Data(hash)

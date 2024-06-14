@@ -23,8 +23,8 @@ public func keyPair() throws -> SignKeyPair {
     
     return SignKeyPair(secretKey: privateKey.rawRepresentation, publicKey: privateKey.publicKey.rawRepresentation)
   } else {
-    var secretKey = [UInt8](repeating: 0, count: 64)
     var publicKey = [UInt8](repeating: 0, count: 32)
+    var secretKey = [UInt8](repeating: 0, count: 64)
     
     let result = keypair(&publicKey, &secretKey)
     guard result == 0 else {
@@ -34,8 +34,8 @@ public func keyPair() throws -> SignKeyPair {
     return SignKeyPair(secretKey: Data(secretKey).prefix(32), publicKey: Data(publicKey))
   }
 #else
-  var secretKey = [UInt8](repeating: 0, count: 64)
   var publicKey = [UInt8](repeating: 0, count: 32)
+  var secretKey = [UInt8](repeating: 0, count: 64)
   
   let result = keypair(&publicKey, &secretKey)
   guard result == 0 else {
@@ -47,11 +47,13 @@ public func keyPair() throws -> SignKeyPair {
 }
 
 public func keyPairFromSeed(seed: Data) throws -> SignKeyPair {
-  var secretKey = [UInt8](repeating: 0, count: 64)
   var publicKey = [UInt8](repeating: 0, count: 32)
-  var s = [UInt8](seed)
+  var secretKey = [UInt8](repeating: 0, count: 64)
+  let seedMemory = seed.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
   
-  let result = keypair_from_seed(&publicKey, &secretKey, &s)
+  let result = keypair_from_seed(&publicKey, &secretKey, seedMemory)
   guard result == 0 else {
     throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result))
   }
@@ -69,9 +71,14 @@ public func sign(data: Data, secretKey: Data) throws -> Data {
     return signature
   } else {
     var signature = [UInt8](repeating: 0, count: 64)
-    var dataArray = [UInt8](data)
-    var sec = [UInt8](secretKey)
-    let result = sign(Int32(data.count), &dataArray, &sec, &signature)
+    let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+      return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+    }
+    let secMemory = secretKey.withUnsafeBytes { (unsafeBytes) in
+      return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+    }
+    
+    let result = sign(Int32(data.count), dataMemory, secMemory, &signature)
     guard result == 0 else {
       throw UtilsError.couldNotGenerateSignature(error: Int(result))
     }
@@ -80,9 +87,14 @@ public func sign(data: Data, secretKey: Data) throws -> Data {
   }
 #else
   var signature = [UInt8](repeating: 0, count: 64)
-  var dataArray = [UInt8](data)
-  var sec = [UInt8](secretKey)
-  let result = sign(Int32(data.count), &dataArray, &sec, &signature)
+  let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
+  let secMemory = secretKey.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
+  
+  let result = sign(Int32(data.count), dataMemory, secMemory, &signature)
   guard result == 0 else {
     throw UtilsError.couldNotGenerateSignature(error: Int(result))
   }
@@ -98,10 +110,16 @@ public func verify(data: Data, signature: Data, publicKey: Data) throws -> Bool 
     
     return publicKey.isValidSignature(signature, for: data)
   } else {
-    var sig = [UInt8](signature)
-    var dataArray = [UInt8](data)
-    var pub = [UInt8](publicKey)
-    let result = verify(Int32(data.count), &dataArray, &pub, &sig)
+    let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+      return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+    }
+    let sigMemory = signature.withUnsafeBytes { (unsafeBytes) in
+      return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+    }
+    let pubMemory = publicKey.withUnsafeBytes { (unsafeBytes) in
+      return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+    }
+    let result = verify(Int32(data.count), dataMemory, pubMemory, sigMemory)
     guard result == 0 else {
       return false
     }
@@ -109,10 +127,16 @@ public func verify(data: Data, signature: Data, publicKey: Data) throws -> Bool 
     return true
   }
 #else
-  var sig = [UInt8](signature)
-  var dataArray = [UInt8](data)
-  var pub = [UInt8](publicKey)
-  let result = verify(Int32(data.count), &dataArray, &pub, &sig)
+  let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
+  let sigMemory = signature.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
+  let pubMemory = publicKey.withUnsafeBytes { (unsafeBytes) in
+    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+  }
+  let result = verify(Int32(data.count), dataMemory, pubMemory, sigMemory)
   guard result == 0 else {
     return false
   }

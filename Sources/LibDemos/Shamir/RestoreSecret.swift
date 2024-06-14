@@ -10,12 +10,12 @@ import Foundation
 
 public func restoreSecret(shares: [Data]) throws -> Data {
   guard let shareLen = shares.first?.count else {
-    throw ShamirSharingError.emptySharesArray // Empty array, all elements have the same length
+    throw ShamirError.emptySharesArray // Empty array, all elements have the same length
   }
   
   for data in shares {
     if data.count != shareLen {
-      throw ShamirSharingError.sharesToRestoreHaveDifferentLength
+      throw ShamirError.sharesToRestoreHaveDifferentLength
     }
   }
   
@@ -39,7 +39,7 @@ public func restoreSecret(shares: [Data]) throws -> Data {
   }
   
   guard result == 0 else {
-    throw ShamirSharingError.invalidSplitResponse(response: result)
+    throw ShamirError.invalidSplitResponse(response: result)
   }
   
   return secretBuffer
