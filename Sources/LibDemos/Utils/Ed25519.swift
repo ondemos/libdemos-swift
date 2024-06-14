@@ -1,14 +1,15 @@
-  //
-  //  KeyPair.swift
-  //
-  //
-  //  Created by ondemOS on 12/6/24.
-  //
+//
+//  KeyPair.swift
+//
+//
+//  Created by ondemOS on 12/6/24.
+//
 
-import Foundation
 import Clibdemos
+import Foundation
+
 #if canImport(CryptoKit)
-import CryptoKit
+  import CryptoKit
 #endif
 
 public struct SignKeyPair {
@@ -17,33 +18,33 @@ public struct SignKeyPair {
 }
 
 public func keyPair() throws -> SignKeyPair {
-#if canImport(CryptoKit)
-  if #available(iOS 13.0, macOS 10.15, *) {
-    let privateKey = Curve25519.Signing.PrivateKey()
-    
-    return SignKeyPair(secretKey: privateKey.rawRepresentation, publicKey: privateKey.publicKey.rawRepresentation)
-  } else {
+  #if canImport(CryptoKit)
+    if #available(iOS 13.0, macOS 10.15, *) {
+      let privateKey = Curve25519.Signing.PrivateKey()
+
+      return SignKeyPair(
+        secretKey: privateKey.rawRepresentation + privateKey.publicKey.rawRepresentation,
+        publicKey: privateKey.publicKey.rawRepresentation
+      )
+    }
+    else {
+      var publicKey = [UInt8](repeating: 0, count: 32)
+      var secretKey = [UInt8](repeating: 0, count: 64)
+
+      let result = keypair(&publicKey, &secretKey)
+      guard result == 0 else { throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result)) }
+
+      return SignKeyPair(secretKey: Data(secretKey), publicKey: Data(publicKey))
+    }
+  #else
     var publicKey = [UInt8](repeating: 0, count: 32)
     var secretKey = [UInt8](repeating: 0, count: 64)
-    
+
     let result = keypair(&publicKey, &secretKey)
-    guard result == 0 else {
-      throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result))
-    }
-    
-    return SignKeyPair(secretKey: Data(secretKey).prefix(32), publicKey: Data(publicKey))
-  }
-#else
-  var publicKey = [UInt8](repeating: 0, count: 32)
-  var secretKey = [UInt8](repeating: 0, count: 64)
-  
-  let result = keypair(&publicKey, &secretKey)
-  guard result == 0 else {
-    throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result))
-  }
-  
-  return SignKeyPair(secretKey: Data(secretKey).prefix(32), publicKey: Data(publicKey))
-#endif
+    guard result == 0 else { throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result)) }
+
+    return SignKeyPair(secretKey: Data(secretKey), publicKey: Data(publicKey))
+  #endif
 }
 
 public func keyPairFromSeed(seed: Data) throws -> SignKeyPair {
@@ -52,24 +53,41 @@ public func keyPairFromSeed(seed: Data) throws -> SignKeyPair {
   let seedMemory = seed.withUnsafeBytes { (unsafeBytes) in
     return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
   }
-  
+
   let result = keypair_from_seed(&publicKey, &secretKey, seedMemory)
-  guard result == 0 else {
-    throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result))
-  }
-  
-  return SignKeyPair(secretKey: Data(secretKey).prefix(32), publicKey: Data(publicKey))
+  guard result == 0 else { throw UtilsError.couldNotGenerateEd25519KeyPair(error: Int(result)) }
+
+  return SignKeyPair(secretKey: Data(secretKey), publicKey: Data(publicKey))
 }
 
 public func sign(data: Data, secretKey: Data) throws -> Data {
-#if canImport(CryptoKit)
-  if #available(iOS 13.0, macOS 10.15, *) {
-    let privateKey = try Curve25519.Signing.PrivateKey.init(rawRepresentation: secretKey)
-    
-    let signature = try privateKey.signature(for: data)
-    
-    return signature
-  } else {
+  guard secretKey.count == 64 else { throw EncryptionError.incorrectSecretKeySize }
+
+  #if canImport(CryptoKit)
+    if #available(iOS 13.0, macOS 10.15, *) {
+      let privateKey = try Curve25519.Signing.PrivateKey.init(
+        rawRepresentation: secretKey.prefix(32)
+      )
+
+      let signature = try privateKey.signature(for: data)
+
+      return signature
+    }
+    else {
+      var signature = [UInt8](repeating: 0, count: 64)
+      let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+        return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+      }
+      let secMemory = secretKey.withUnsafeBytes { (unsafeBytes) in
+        return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+      }
+
+      let result = sign(Int32(data.count), dataMemory, secMemory, &signature)
+      guard result == 0 else { throw UtilsError.couldNotGenerateSignature(error: Int(result)) }
+
+      return Data(signature)
+    }
+  #else
     var signature = [UInt8](repeating: 0, count: 64)
     let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
       return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
@@ -77,39 +95,41 @@ public func sign(data: Data, secretKey: Data) throws -> Data {
     let secMemory = secretKey.withUnsafeBytes { (unsafeBytes) in
       return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
     }
-    
+
     let result = sign(Int32(data.count), dataMemory, secMemory, &signature)
-    guard result == 0 else {
-      throw UtilsError.couldNotGenerateSignature(error: Int(result))
-    }
-    
+    guard result == 0 else { throw UtilsError.couldNotGenerateSignature(error: Int(result)) }
+
     return Data(signature)
-  }
-#else
-  var signature = [UInt8](repeating: 0, count: 64)
-  let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
-    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
-  }
-  let secMemory = secretKey.withUnsafeBytes { (unsafeBytes) in
-    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
-  }
-  
-  let result = sign(Int32(data.count), dataMemory, secMemory, &signature)
-  guard result == 0 else {
-    throw UtilsError.couldNotGenerateSignature(error: Int(result))
-  }
-  
-  return Data(signature)
-#endif
+  #endif
 }
 
 public func verify(data: Data, signature: Data, publicKey: Data) throws -> Bool {
-#if canImport(CryptoKit)
-  if #available(iOS 13.0, macOS 10.15, *) {
-    let publicKey = try Curve25519.Signing.PublicKey.init(rawRepresentation: publicKey)
-    
-    return publicKey.isValidSignature(signature, for: data)
-  } else {
+  guard publicKey.count == 32 else { throw EncryptionError.incorrectPublicKeySize }
+
+  guard signature.count == 64 else { throw EncryptionError.incorrectSignatureSize }
+
+  #if canImport(CryptoKit)
+    if #available(iOS 13.0, macOS 10.15, *) {
+      let publicKey = try Curve25519.Signing.PublicKey.init(rawRepresentation: publicKey)
+
+      return publicKey.isValidSignature(signature, for: data)
+    }
+    else {
+      let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
+        return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+      }
+      let sigMemory = signature.withUnsafeBytes { (unsafeBytes) in
+        return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+      }
+      let pubMemory = publicKey.withUnsafeBytes { (unsafeBytes) in
+        return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
+      }
+      let result = verify(Int32(data.count), dataMemory, pubMemory, sigMemory)
+      guard result == 0 else { return false }
+
+      return true
+    }
+  #else
     let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
       return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
     }
@@ -120,28 +140,8 @@ public func verify(data: Data, signature: Data, publicKey: Data) throws -> Bool 
       return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
     }
     let result = verify(Int32(data.count), dataMemory, pubMemory, sigMemory)
-    guard result == 0 else {
-      return false
-    }
-    
-    return true
-  }
-#else
-  let dataMemory = data.withUnsafeBytes { (unsafeBytes) in
-    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
-  }
-  let sigMemory = signature.withUnsafeBytes { (unsafeBytes) in
-    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
-  }
-  let pubMemory = publicKey.withUnsafeBytes { (unsafeBytes) in
-    return unsafeBytes.bindMemory(to: UInt8.self).baseAddress!
-  }
-  let result = verify(Int32(data.count), dataMemory, pubMemory, sigMemory)
-  guard result == 0 else {
-    return false
-  }
-  
-  return true
-#endif
-}
+    guard result == 0 else { return false }
 
+    return true
+  #endif
+}

@@ -1,9 +1,9 @@
-  //
-  //  ShamirError.swift
-  //  
-  //
-  //  Created by ondemOS on 11/6/24.
-  //
+//
+//  ShamirError.swift
+//
+//
+//  Created by ondemOS on 11/6/24.
+//
 
 import Foundation
 

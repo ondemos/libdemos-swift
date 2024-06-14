@@ -1,7 +1,7 @@
-import XCTest
-@testable import LibDemos
-
 import Foundation
+import XCTest
+
+@testable import LibDemos
 
 final class UtilsTests: XCTestCase {
   func testRandomBytes() {
@@ -10,9 +10,8 @@ final class UtilsTests: XCTestCase {
       let data2 = try randomBytes(length: 10)
 
       XCTAssertNotEqual(data1, data2)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
   }
 
   func testSha512() {
@@ -22,9 +21,8 @@ final class UtilsTests: XCTestCase {
       let hash2 = try SHA512(data: data)
 
       XCTAssertEqual(hash1, hash2)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
   }
 
   func testMnemonic() {
@@ -41,9 +39,8 @@ final class UtilsTests: XCTestCase {
 
       let validation = validateMnemonic(mnemonic: mnemonic1)
       XCTAssertTrue(validation)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
   }
 
   func testEd25519() {
@@ -51,17 +48,24 @@ final class UtilsTests: XCTestCase {
       let keypair = try keyPair()
       let randomMessage = try randomBytes(length: 12)
       let signature = try sign(data: randomMessage, secretKey: keypair.secretKey)
-      let verifySig = try verify(data: randomMessage, signature: signature, publicKey: keypair.publicKey)
+      let verifySig = try verify(
+        data: randomMessage,
+        signature: signature,
+        publicKey: keypair.publicKey
+      )
 
       XCTAssertTrue(verifySig)
 
       let keypair1 = try keyPair()
-      let verifyWrong = try verify(data: randomMessage, signature: signature, publicKey: keypair1.publicKey)
+      let verifyWrong = try verify(
+        data: randomMessage,
+        signature: signature,
+        publicKey: keypair1.publicKey
+      )
 
       XCTAssertFalse(verifyWrong)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
   }
 
   func testMnemonicSignVerify() {
@@ -72,22 +76,33 @@ final class UtilsTests: XCTestCase {
 
       let randomMessage = try randomBytes(length: 12)
       let signature = try sign(data: randomMessage, secretKey: keypair.secretKey)
-      let verifySig = try verify(data: randomMessage, signature: signature, publicKey: keypair.publicKey)
+      let verifySig = try verify(
+        data: randomMessage,
+        signature: signature,
+        publicKey: keypair.publicKey
+      )
 
       XCTAssertTrue(verifySig)
 
       let keypair1 = try keyPairFromMnemonic(words: mnemonic, password: String(password.suffix(5)))
-      let verifyWrong = try verify(data: randomMessage, signature: signature, publicKey: keypair1.publicKey)
+      let verifyWrong = try verify(
+        data: randomMessage,
+        signature: signature,
+        publicKey: keypair1.publicKey
+      )
 
       XCTAssertFalse(verifyWrong)
 
       let keypair2 = try keyPairFromMnemonic(words: mnemonic, password: password)
-      let verifyRight = try verify(data: randomMessage, signature: signature, publicKey: keypair2.publicKey)
+      let verifyRight = try verify(
+        data: randomMessage,
+        signature: signature,
+        publicKey: keypair2.publicKey
+      )
 
       XCTAssertTrue(verifyRight)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
   }
 
   func testRandomSelection() {
@@ -114,8 +129,63 @@ final class UtilsTests: XCTestCase {
       XCTAssertEqual(subset1.count, min)
       XCTAssertEqual(subset2.count, min)
       XCTAssertNotEqual(subset1, subset2)
-    } catch {
-      XCTFail("ERROR: \(error)")
     }
+    catch { XCTFail("ERROR: \(error)") }
+  }
+
+  func testAsymmetricEncryption() {
+    do {
+      let message = try randomBytes(length: 100)
+
+      let keypair1 = try keyPair()
+      let keypair2 = try keyPair()
+
+      let additional = try randomBytes(length: 64)
+
+      let encrypted = try encryptAsymmetric(
+        message: message,
+        receiverPublicKey: keypair1.publicKey,
+        senderSecretKey: keypair2.secretKey,
+        additionalData: additional
+      )
+
+      let decrypted = try decryptAsymmetric(
+        encrypted: encrypted,
+        senderPublicKey: keypair2.publicKey,
+        receiverSecretKey: keypair1.secretKey,
+        additionalData: additional
+      )
+
+      XCTAssertEqual(decrypted, message)
+    }
+    catch { XCTFail("ERROR: \(error)") }
+  }
+
+  func testSymmetricEncryption() {
+    do {
+      let message = try randomBytes(length: 100)
+
+      let symmetricKey = try randomBytes(length: 32)
+
+      //      let keypair1 = try keyPair()
+      //      let keypair2 = try keyPair()
+
+      let additional = try randomBytes(length: 64)
+
+      let encrypted = try encryptSymmetric(
+        message: message,
+        symmetricKey: symmetricKey,
+        additionalData: additional
+      )
+
+      let decrypted = try decryptSymmetric(
+        encrypted: encrypted,
+        symmetricKey: symmetricKey,
+        additionalData: additional
+      )
+
+      XCTAssertEqual(decrypted, message)
+    }
+    catch { XCTFail("ERROR: \(error)") }
   }
 }

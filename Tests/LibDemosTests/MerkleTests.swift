@@ -5,21 +5,17 @@
 //  Created by ondemOS on 13/6/24.
 //
 
-import XCTest
-@testable import LibDemos
-
 import Foundation
+import XCTest
+
+@testable import LibDemos
 
 final class MerkleTests: XCTestCase {
   func testMerkleRootOdd() {
     do {
       let oddTree: [Data] = [
-        try randomBytes(length: 29),
-        try randomBytes(length: 30),
-        try randomBytes(length: 100),
-        try randomBytes(length: 22),
-        try randomBytes(length: 56),
-        try randomBytes(length: 93),
+        try randomBytes(length: 29), try randomBytes(length: 30), try randomBytes(length: 100),
+        try randomBytes(length: 22), try randomBytes(length: 56), try randomBytes(length: 93),
         try randomBytes(length: 10),
       ]
 
@@ -43,20 +39,15 @@ final class MerkleTests: XCTestCase {
 
       let unverified = try verifyMerkleProof(elementHash: elementHash1, root: root, proof: proof)
       XCTAssertFalse(unverified)
-    } catch {
-      XCTFail("An error occured while splitting \(error)")
     }
+    catch { XCTFail("An error occured while splitting \(error)") }
   }
 
   func testMerkleRootEven() {
     do {
       let oddTree: [Data] = [
-        try randomBytes(length: 29),
-        try randomBytes(length: 30),
-        try randomBytes(length: 100),
-        try randomBytes(length: 22),
-        try randomBytes(length: 93),
-        try randomBytes(length: 10),
+        try randomBytes(length: 29), try randomBytes(length: 30), try randomBytes(length: 100),
+        try randomBytes(length: 22), try randomBytes(length: 93), try randomBytes(length: 10),
       ]
 
       let root = try getMerkleRoot(tree: oddTree)
@@ -79,9 +70,7 @@ final class MerkleTests: XCTestCase {
 
       let unverified = try verifyMerkleProof(elementHash: elementHash1, root: root, proof: proof)
       XCTAssertFalse(unverified)
-    } catch {
-      XCTFail("An error occured while splitting \(error)")
     }
+    catch { XCTFail("An error occured while splitting \(error)") }
   }
 }
-

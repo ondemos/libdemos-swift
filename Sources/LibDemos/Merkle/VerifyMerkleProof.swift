@@ -1,6 +1,6 @@
 //
 //  VerifyMerkleProof.swift
-//  
+//
 //
 //  Created by ondemOS on 13/6/24.
 //

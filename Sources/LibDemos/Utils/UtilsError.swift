@@ -1,9 +1,9 @@
-  //
-  //  File.swift
-  //
-  //
-  //  Created by ondemOS on 11/6/24.
-  //
+//
+//  File.swift
+//
+//
+//  Created by ondemOS on 11/6/24.
+//
 
 import Foundation
 
@@ -17,6 +17,19 @@ enum UtilsError: Error {
   case couldNotVerifySignature(error: Int)
   case minBiggerThanMax(min: Int, max: Int)
   case minOrMaxIsNegative
+}
+
+enum EncryptionError: Error {
+  case encryptionError(response: Int)
+  case symmetricEncryptionError(response: Int)
+  case decryptionError(response: Int)
+  case symmetricDecryptionError(response: Int)
+  case secretKeyIsInLibsodiumFormat
+  case incorrectPublicKeySize
+  case incorrectSecretKeySize
+  case incorrectEncryptedSize
+  case incorrectSymmetricKeySize
+  case incorrectSignatureSize
 }
 
 enum MnemonicError: Error {
