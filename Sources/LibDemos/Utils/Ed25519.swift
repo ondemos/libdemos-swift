@@ -15,6 +15,10 @@ import Foundation
 public struct SignKeyPair {
   let secretKey: Data
   let publicKey: Data
+  public init(secretKey: Data, publicKey: Data) {
+    self.secretKey = secretKey.count == 64 ? secretKey : Data([UInt8](repeating: 0, count: 64))
+    self.publicKey = publicKey.count == 32 ? publicKey : Data([UInt8](repeating: 0, count: 32))
+  }
 }
 
 public func keyPair() throws -> SignKeyPair {
